@@ -55,6 +55,7 @@ type stmt =
   | Out of id
   | Return of id option
   | Loc of stmt * int (* annotate a statement with it's source line number *)
+  | Switch of exp * (exp * stmt) list
 
 type typ =
   | Int

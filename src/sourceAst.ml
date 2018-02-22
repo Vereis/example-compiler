@@ -180,6 +180,7 @@ type stmt =
   | Out of id
   | Return of id option
   | Loc of stmt * int (* annotate a statement with it's source line number *)
+  | Switch of exp * (exp * stmt) list
 
 (* Pretty-print a statement *)
 let rec pp_stmt (fmt : F.formatter) (stmt : stmt) : unit =
@@ -227,6 +228,9 @@ let rec pp_stmt (fmt : F.formatter) (stmt : stmt) : unit =
       pp_id i
   | Loc (s, _) ->
     pp_stmt fmt s
+  | Switch (e, cases) ->
+    F.fprintf fmt "@[<2>case@ %a@]" 
+    pp_exp e
 
 and pp_stmts (fmt : F.formatter) (stmts : stmt list) : unit =
   let rec pp fmt stmts =
@@ -437,6 +441,10 @@ let rec parse_stmt (toks : T.tok_loc list) : stmt * T.tok_loc list =
   | (T.Input, ln) :: (T.Ident x, _) :: toks -> (Loc (In (Source (x,None)), ln), toks)
   | (T.Output, ln) :: (T.Ident x, _) :: toks -> (Loc (Out (Source (x,None)), ln), toks)
   | (T.Return, ln) :: (T.Ident x, _) :: toks -> (Loc (Return (Some (Source (x,None))), ln), toks)
+  | (T.Switch, ln) :: toks ->
+    let (condition, toks) = parse_exp toks in
+    let (cases, toks) = parse_cases toks in
+    (Loc (Switch (condition, cases), ln), toks)
   | (t, ln) :: _ ->
     parse_error ln ("bad statement, beginning with a " ^ T.show_token t)
 
@@ -449,6 +457,21 @@ and parse_stmt_list (toks : T.tok_loc list) : stmt list * T.tok_loc list =
     let (s, toks) = parse_stmt toks in
     let (s_list, toks) = parse_stmt_list toks in
     (s::s_list, toks)
+
+(* Parse 1 or more case expressions which look like the following:
+   case EXP { ... }
+   case EXP { ... }
+   Until there are no more cases, and returns them *)
+and parse_cases (toks : T.tok_loc list) : ((exp * stmt) list * T.tok_loc list) =
+  match toks with
+  | [] -> eof_error "a switch case"
+  | (T.Case, _)::toks -> 
+    let (expression, toks) = parse_exp toks in
+    let (block, toks) = parse_stmt toks in
+    ([(expression, block)], toks)
+  | (_, ln)::toks ->
+    parse_error ln ("bad case")
+    
 
 (* Convert the first typ in toks into an AST. Return it with the left over
    tokens. *)

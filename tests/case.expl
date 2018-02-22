@@ -1,8 +1,11 @@
 // Basic testing of switch statement
 
-let r1 : int = 1
-switch r1 {
-    case 1 { 
-        r1 := 2
-    }
+let res : int = test(1)
+
+function test (x : int) : int {
+    switch x
+        case 1 { 
+            x := 2
+        }
+    return x
 }
