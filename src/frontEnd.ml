@@ -33,10 +33,14 @@ let front_end (filename : string) (debug : bool) : SourceAst.prog
       let ast = SourceAst.parse_program toks in
       if debug then
         Format.printf "%a@\n@\n" SourceAst.pp_program ast;
+      ast
+      
+      (* TODO: typecheck
       let ast2 = TypeCheck.type_prog ast in
       if debug then
         Format.printf "%a@\n@\n" SourceAst.pp_program ast2;
       ast2
+      *)
     with
     | BadInput s ->
       Format.printf "%s\n" s;
