@@ -180,7 +180,7 @@ type stmt =
   | Out of id
   | Return of id option
   | Loc of stmt * int (* annotate a statement with it's source line number *)
-  | Switch of exp * (exp * stmt) list
+  | Switch of exp * (exp * stmt) list * stmt list
 
 (* Pretty-print a statement *)
 let rec pp_stmt (fmt : F.formatter) (stmt : stmt) : unit =
@@ -228,7 +228,7 @@ let rec pp_stmt (fmt : F.formatter) (stmt : stmt) : unit =
       pp_id i
   | Loc (s, _) ->
     pp_stmt fmt s
-  | Switch (e, cases) ->
+  | Switch (e, _, _) ->
     F.fprintf fmt "@[<2>case@ %a@]" 
     pp_exp e
 
@@ -322,7 +322,6 @@ let parse_error_expect (ln : int) (given : T.token) (expect : T.token)
   raise (BadInput ("Parse error on line " ^ string_of_int ln ^ ": expected " ^
                    T.show_token expect ^ " in " ^ where ^ " but found " ^
                    T.show_token given))
-
 
 (* Raise a parse error because the end of file was reached unexpectedly *)
 let eof_error (expect : string) : 'a =
@@ -443,8 +442,8 @@ let rec parse_stmt (toks : T.tok_loc list) : stmt * T.tok_loc list =
   | (T.Return, ln) :: (T.Ident x, _) :: toks -> (Loc (Return (Some (Source (x,None))), ln), toks)
   | (T.Switch, ln) :: toks ->
     let (condition, toks) = parse_exp toks in
-    let (cases, toks) = parse_cases toks in
-    (Loc (Switch (condition, cases), ln), toks)
+    let (cases, def, toks) = parse_cases toks ([] : (exp * stmt) list) ([] : stmt list) in
+    (Loc (Switch (condition, cases, def), ln), toks)
   | (t, ln) :: _ ->
     parse_error ln ("bad statement, beginning with a " ^ T.show_token t)
 
@@ -461,17 +460,30 @@ and parse_stmt_list (toks : T.tok_loc list) : stmt list * T.tok_loc list =
 (* Parse 1 or more case expressions which look like the following:
    case EXP { ... }
    case EXP { ... }
+   default  { ... }
    Until there are no more cases, and returns them *)
-and parse_cases (toks : T.tok_loc list) : ((exp * stmt) list * T.tok_loc list) =
+and parse_cases (toks : T.tok_loc list) (cases : (exp * stmt) list) (def : stmt list) : ((exp * stmt) list * stmt list * T.tok_loc list) =
   match toks with
-  | [] -> eof_error "a switch case"
+  | [] -> 
+    if List.length cases > 0 then (cases, def, toks)
+    else eof_error "a switch case"
   | (T.Case, _)::toks -> 
     let (expression, toks) = parse_exp toks in
     let (block, toks) = parse_stmt toks in
-    ([(expression, block)], toks)
-  | (_, ln)::toks ->
-    parse_error ln ("bad case")
-    
+    parse_cases toks (cases @ [(expression, block)]) def
+  | (T.Default, _)::toks -> 
+    let (block, toks2) = parse_stmt toks in
+    (match toks2 with
+    | (T.Case, ln)::_ ->
+      parse_error ln ("default case not the final case")
+    | (T.Default, ln)::_ ->
+      parse_error ln ("more than one default case")
+    | toks2 ->
+      parse_cases toks2 cases (block::def))
+  | (tok, ln)::toks ->
+    if List.length cases > 0 then (cases, def, (tok, ln)::toks)
+    else parse_error ln ("bad case")
+
 
 (* Convert the first typ in toks into an AST. Return it with the left over
    tokens. *)

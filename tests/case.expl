@@ -6,6 +6,13 @@ function test (x : int) : int {
     switch x
         case 1 { 
             x := 2
+            x := 3
+        }
+        case 2 { 
+            x := 4
+        }
+        default { 
+            x := 5
         }
     return x
 }
