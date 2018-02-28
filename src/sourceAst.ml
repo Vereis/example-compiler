@@ -228,9 +228,25 @@ let rec pp_stmt (fmt : F.formatter) (stmt : stmt) : unit =
       pp_id i
   | Loc (s, _) ->
     pp_stmt fmt s
-  | Switch (e, _, _) ->
-    F.fprintf fmt "@[<2>case@ %a@]" 
+  | Switch (e, cases, def) ->
+    F.fprintf fmt "@[<2>switch@ %a@\n%a%a@]" 
     pp_exp e
+    pp_cases cases
+    pp_defcase def
+
+and pp_cases (fmt : F.formatter) (cases : (exp * stmt) list) : unit =
+  List.iter (fun (case : (exp * stmt)) ->
+    let (expr, block) = case in (
+    F.fprintf fmt "@[case %a@ %a@\n@]"
+    pp_exp expr
+    pp_stmt block
+  )) cases
+
+and pp_defcase (fmt : F.formatter) (def : stmt list) : unit =
+  if List.length def > 0 then
+    F.fprintf fmt "@[default %a@]" pp_stmt (List.hd def)
+  else
+    F.fprintf fmt "// No default case"
 
 and pp_stmts (fmt : F.formatter) (stmts : stmt list) : unit =
   let rec pp fmt stmts =
