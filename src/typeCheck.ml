@@ -216,6 +216,17 @@ let rec type_stmt (ln : int option) (env :env_t) (return : t) (stmt : stmt)
     Stmts (List.map (type_stmt ln env return) s_list)
   | Loc (s, ln') ->
     type_stmt (Some ln') env return s
+  | Switch (e, cases, s_list) ->
+    let (_, e') = type_exp ln env e in
+    let t_cases = type_cases ln env return cases in
+    Switch (e', t_cases, (List.map (type_stmt ln env return) s_list))
+and type_cases ln env return (cases : (exp * stmt) list) =
+  let case :: cs = cases in
+  List.map (fun (c : (exp * stmt)) ->
+    let (e, s) = c in
+    let (_, e') = type_exp ln env e in
+    (e', type_stmt ln env return s)
+  ) cases
 
 let source_typ_to_t (t : SourceAst.typ) : t =
   match t with
