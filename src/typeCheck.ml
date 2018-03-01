@@ -217,16 +217,16 @@ let rec type_stmt (ln : int option) (env :env_t) (return : t) (stmt : stmt)
   | Loc (s, ln') ->
     type_stmt (Some ln') env return s
   | Switch (e, cases, s_list) ->
-    let (_, e') = type_exp ln env e in
-    let t_cases = type_cases ln env return cases in
-    Switch (e', t_cases, (List.map (type_stmt ln env return) s_list))
-and type_cases ln env return (cases : (exp * stmt) list) =
-  let case :: cs = cases in
-  List.map (fun (c : (exp * stmt)) ->
-    let (e, s) = c in
-    let (_, e') = type_exp ln env e in
-    (e', type_stmt ln env return s)
-  ) cases
+    let (t, e') = type_exp ln env e in
+    if t = Tint then (let case_ts = (List.map (fun (case : (exp * stmt)) ->
+      let (e, s) = case in
+      let (ct, ce') = type_exp ln env e in
+      if ct = Tint then
+      (ce', type_stmt ln env return s)
+      else type_error ln "non-integer case expression"
+    ) cases) in
+    Switch (e', case_ts, (List.map (type_stmt ln env return) s_list)))
+    else type_error ln "non-integer switch expression"
 
 let source_typ_to_t (t : SourceAst.typ) : t =
   match t with
