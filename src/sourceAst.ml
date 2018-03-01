@@ -483,10 +483,19 @@ and parse_cases (toks : T.tok_loc list) (cases : (exp * stmt) list) (def : stmt 
   | [] -> 
     if List.length cases > 0 then (cases, def, toks)
     else eof_error "a switch case"
-  | (T.Case, _)::toks -> 
+  | (T.Case, ln)::toks -> 
     let (expression, toks) = parse_exp toks in
-    let (block, toks) = parse_stmt toks in
-    parse_cases toks (cases @ [(expression, block)]) def
+
+    (* Ensure no duplicate cases *)
+    if List.exists (fun case ->
+      let (expr, _) = case in
+      expr = expression
+    ) cases then parse_error ln "duplicate case"
+    else (
+      let (block, toks) = parse_stmt toks in
+      parse_cases toks (cases @ [(expression, block)]) def
+    )
+
   | (T.Default, _)::toks -> 
     let (block, toks2) = parse_stmt toks in
     (match toks2 with

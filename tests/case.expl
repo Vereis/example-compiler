@@ -5,17 +5,33 @@ let res : int = test(1)
 function test (x : int) : int {
     input x
     switch x
+        // 1
         case 0 + 1 { 
             x := 2
             x := 3
         }
-        case 2 * 16 { 
-            x := 4
+        // 32
+        case a(0) { 
+            x := 32
         }
+        // 32
+        case 32 {
+            x := 64
+        }
+        // 0
+        case 0 {
+            
+        }
+        // default
         default { 
             x := 5
         }
 
     output x
+    return x
+}
+
+function a (x : int) : int {
+    x := x + 32
     return x
 }
