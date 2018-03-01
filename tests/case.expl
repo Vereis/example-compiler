@@ -3,16 +3,19 @@
 let res : int = test(1)
 
 function test (x : int) : int {
+    input x
     switch x
-        case 1 { 
+        case 0 + 1 { 
             x := 2
             x := 3
         }
-        case 2 { 
+        case 2 * 16 { 
             x := 4
         }
         default { 
             x := 5
         }
+
+    output x
     return x
 }

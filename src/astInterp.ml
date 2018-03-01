@@ -265,6 +265,21 @@ and interp_stmt (env : env_t) (s : stmt) : unit =
   | Return (Some i) ->
     raise (Return_exn !(Idmap.find i env.vars))
   | Loc (s, _) -> interp_stmt env s
+  | Switch (e, c, d) ->
+    let e' = val_t_to_int (interp_exp env e) in
+    Printf.printf "e' = %s\n" (Int64.to_string e');
+    Printf.printf "Cases:\n";
+    let c' = List.filter (fun (case : (exp * stmt)) ->
+      let (ce, _) = case in
+      let ce' = val_t_to_int (interp_exp env ce) in
+      Printf.printf "ce' = %s\n" (Int64.to_string ce');
+      ce' = e'
+    ) c in
+    if List.length c' > 0 then
+      let (_, matching_stmt) = List.hd c' in 
+      interp_stmt env matching_stmt
+    else
+      interp_stmt env (List.hd d)
 
 let interp_prog (p : prog) : unit =
   let fun_env =
