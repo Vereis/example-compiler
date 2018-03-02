@@ -438,7 +438,12 @@ let build_cfg (stmts : S.stmt list) : cfg =
       add_block block_num block_acc (Return None)
     | S.Return _ :: _ ->
       raise (InternalError "return followed by statements in blockStructure")
-
+    | S.Switch (e, cases, s_list) :: s ->
+      let case_tests = List.map (fun case -> 
+        let (e', stmt) = case in
+        (e', (S.Op (e, Tokens.Gt, e')), (e', stmt))
+      ) cases in
+      raise (InternalError "")
   in
 
   (* Later on we rely on the starting block being #0 *)
