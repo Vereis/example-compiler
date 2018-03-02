@@ -281,6 +281,21 @@ let rec prop_stmts (env : exp Idmap.t) (stmts : stmt list)
   | Return x :: _ ->
     (* We can't carry on past a return *)
     (env, [Return x])
+  | Switch (e, c, d)::stmts ->
+    let e' = fold_exp env e in
+    let c' = List.map (fun (case : (exp * stmt)) ->
+      let (cexp, cstmts) = case in
+      let cexp' = fold_exp env cexp in
+      let (_, cstmts') = prop_stmt env cstmts in
+      (cexp', cstmts')
+    ) c in
+    let (env', stmts') = prop_stmts env stmts in
+    if List.length d > 0 then 
+      let (_, d') = prop_stmt env (List.hd d) in
+      (env', Switch (e', c', [d']) :: stmts')
+    else 
+      (env', Switch (e', c', []) :: stmts')
+
 
 and prop_stmt env (stmt : stmt) =
   match prop_stmts env [stmt] with
