@@ -186,6 +186,19 @@ let unnest (stmts : stmt list) : stmt list =
     | Loc (stmt, _) ->
       unnest_stmt stmt
     | Return id -> [Return id]
+    | Switch (e, cases, s_list) ->
+      let (se, e') = unnest_exp_for_test e in
+      let cases' = (List.map (fun (case : (exp * stmt)) ->
+        let (e0, s) = case in
+        let (se1, e1) = unnest_exp_for_test e0 in
+        let s1 = unnest_stmt s in
+        (e1, stmts_to_stmt s1)
+      ) cases) in
+      let s_list1 = (List.map (fun (s : stmt) ->
+        let s2 = unnest_stmt s in
+        stmts_to_stmt s2
+      ) s_list) in
+      se @ [Switch (e', cases', s_list1)]
   in
 
   List.flatten (List.map unnest_stmt stmts)
