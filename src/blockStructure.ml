@@ -439,14 +439,27 @@ let build_cfg (stmts : S.stmt list) : cfg =
     | S.Return _ :: _ ->
       raise (InternalError "return followed by statements in blockStructure")
     | S.Switch (e, cases, s_list) :: s ->
+      (* Turn the cases into equality tests for branch *)
       let case_tests = List.map (fun case -> 
         let (e', stmt) = case in
-        (e', (S.Op (e, Tokens.Gt, e')), (e', stmt))
+        (flat_exp_to_test (S.Op (e, Tokens.Eq, e')), get_block_num (), stmt)
       ) cases in
+      let following_block = get_block_num () in
+      process_case_blocks case_tests block_num [];
       raise (InternalError "")
+  and process_case_blocks (cases : (test  * int * S.stmt) list) (block_num : int) (block_acc : basic_block) 
+                          : (int * basic_block) =
+    match cases with
+     | [] -> 
+       (block_num, block_acc)
+     | (ctest, cblock_num, cstmt)::other_cases ->
+       let true_block_n = cblock_num in
+       add_block block_num block_acc (Branch (ctest, true_block_n, following_block_n);
   in
 
   (* Later on we rely on the starting block being #0 *)
   let init_block = get_block_num () in
   find_blocks init_block [] (Return None) stmts;
   !the_cfg
+
+
